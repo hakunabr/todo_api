@@ -1,3 +1,5 @@
+from contextlib import AbstractContextManager
+from typing import Any
 from rest_framework.test import APITestCase
 from rest_framework import status
 from .models import Task
@@ -108,7 +110,6 @@ class TaskTestCases(APITestCase):
             "title": "test_title_moded",
         }
         response = self.client.patch(task_url, data, format='json')
-        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['title'], data['title'])
     
@@ -126,28 +127,14 @@ class TaskTestCases(APITestCase):
         response = self.client.delete(task_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-
-
-'''    def test_update_task(self):
-        # creates a sample task and updates its status
-        task = Task.objects.create(user=self.user, title='test_title', description='test_description')
-        task_url = reverse('task-detail', kwargs={'pk': task.pk})
+    def test_task_get_filtered_authenticated(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access}')
         data = {
-            "title": "updated_title",
-            "description": "updated_description",
-            "completed": True
+            "title": "test_title",
+            "description": "test_description"
         }
-        response = self.client.patch(task_url, data, format='json')
+        creation_response = self.client.post(self.task_url, data, format='json')
+        self.assertEqual(creation_response.status_code, status.HTTP_201_CREATED)
+        response = self.client.get(self.task_url, {'completed': False}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['title'], data['title'])
-        self.assertEqual(response.data['description'], data['description'])
-        self.assertEqual(response.data['completed'], data['completed'])
-
-    def test_delete_task(self):
-        # creates a sample task and deletes it
-        task = Task.objects.create(user=self.user, title='test_title', description='test_description')
-        task_url = reverse('task-detail', kwargs={'pk': task.pk})
-        response = self.client.delete(task_url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Task.objects.count(), 0)
-'''
+        self.assertEqual(len(response.data), 1)
