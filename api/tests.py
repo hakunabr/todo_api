@@ -75,16 +75,56 @@ class TaskTestCases(APITestCase):
         self.access = str(self.refresh.access_token)
     
     def test_task_authenticated(self):
+        # creates a task and check if it was created
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access}')
         data = {
             "title": "test_title",
             "description": "test_description"
         }
-        reponse = self.client.post(self.task_url, data, format='json')
-        print(reponse.data)
-        self.assertEqual(reponse.status_code, status.HTTP_201_CREATED)
+        response = self.client.post(self.task_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
+    def test_task_unauthenticated(self):
+        # removes the token and check if it works
+        data = {
+            "title": "test_title",
+            "description": "test_description"
+        }
+        response = self.client.post(self.task_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_task_update_authenticated(self):
+        # need to clean up this test later, maybe do a single task creation at setUp
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access}')
+        data = {
+            "title": "test_title",
+            "description": "test_description"
+        }
+        creation_response = self.client.post(self.task_url, data, format='json')
+        self.assertEqual(creation_response.status_code, status.HTTP_201_CREATED)
+        task = Task.objects.get(title='test_title')
+        task_url = reverse('task-detail', kwargs={'pk': task.pk})
+        data = {
+            "title": "test_title_moded",
+        }
+        response = self.client.patch(task_url, data, format='json')
+        print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], data['title'])
+    
+    def test_task_delete_authenticated(self):
+        # also need some clean up here
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access}')
+        data = {
+            "title": "test_title",
+            "description": "test_description"
+        }
+        creation_response = self.client.post(self.task_url, data, format='json')
+        self.assertEqual(creation_response.status_code, status.HTTP_201_CREATED)
+        task = Task.objects.get(title='test_title')
+        task_url = reverse('task-detail', kwargs={'pk': task.pk})
+        response = self.client.delete(task_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
 
 

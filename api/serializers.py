@@ -11,6 +11,7 @@ class TaskSerializer(serializers.ModelSerializer):
         read_only_fields = ['user'] # had to put user as read only, since the user will be set in the view
     
     def create(self, validated_data):
+        # also, on create, the user will be set to the user that is logged
         task = Task.objects.create(
             title=validated_data['title'],
             description=validated_data.get('description', ''),
