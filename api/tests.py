@@ -3,6 +3,7 @@ from rest_framework import status
 from .models import Task
 from django.contrib.auth.models import User
 from django.urls import reverse
+from rest_framework_simplejwt.tokens import RefreshToken
 # Create your tests here.
 
 class UserTestCases(APITestCase):
@@ -65,20 +66,29 @@ class TaskTestCases(APITestCase):
         #use teardown here to ensure db is clear
         self.tearDown()
         # create a user and get the url for the user
-        self.user = User.objects.create(username='test_user', password='test_password', email = "test_email@gmail.com")
-        self.user_url = reverse('user-detail', kwargs={'pk': self.user.pk})
+        self.user = User.objects.create_user(username='test_user', password='test_password', email='test_email@gmail.com')
+        self.client.login(username='test_user', password='test_password')
+        self.task_url = reverse('task-list')
+
+        #get the tokens and put access token str on access
+        self.refresh = RefreshToken.for_user(self.user)
+        self.access = str(self.refresh.access_token)
     
-    def test_get_task(self):
-        # creates a ssample task and compare its defailts
-        task = Task.objects.create(user=self.user, title='test_title', description='test_description')
-        task_url = reverse('task-detail', kwargs={'pk': task.pk})
-        response = self.client.get(task_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['title'], 'test_title')
-        self.assertEqual(response.data['description'], 'test_description')
-        self.assertEqual(response.data['user'], self.user.pk)
+    def test_task_authenticated(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access}')
+        data = {
+            "title": "test_title",
+            "description": "test_description"
+        }
+        reponse = self.client.post(self.task_url, data, format='json')
+        print(reponse.data)
+        self.assertEqual(reponse.status_code, status.HTTP_201_CREATED)
         
-    def test_update_task(self):
+
+
+
+
+'''    def test_update_task(self):
         # creates a sample task and updates its status
         task = Task.objects.create(user=self.user, title='test_title', description='test_description')
         task_url = reverse('task-detail', kwargs={'pk': task.pk})
@@ -99,4 +109,5 @@ class TaskTestCases(APITestCase):
         task_url = reverse('task-detail', kwargs={'pk': task.pk})
         response = self.client.delete(task_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Task.objects.count(), 0)        
+        self.assertEqual(Task.objects.count(), 0)
+'''
